@@ -6,6 +6,11 @@ on:
   pull_request:
     branches: [ main, master, develop ]
 
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -40,7 +45,7 @@ jobs:
       env:
         ALLURE_RESULTS_DIR: allure-results
       
-    - name: Setup .NET
+    - name: Restore .NET dependencies
       working-directory: ./backend
       run: dotnet restore
       
@@ -62,12 +67,18 @@ jobs:
       run: |
         python3 scripts/convert_trx_to_allure.py backend/allure-results/results.trx allure-results/ || true
         
+    - name: Download Allure history from previous run
+      uses: actions/download-artifact@v4
+      with:
+        name: allure-history
+        path: allure-history
+        continue-on-error: true
+        
     - name: Prepare Allure history
       run: |
         mkdir -p allure-history
-        if [ -d "allure-report/history" ]; then
-          cp -r allure-report/history/* allure-history/ || true
-        fi
+        # Если история загружена из артефакта, она уже в allure-history
+        echo "History prepared"
         
     - name: Generate Allure Report
       run: |
@@ -82,14 +93,24 @@ jobs:
         
         # Генерируем отчет
         if [ "$(ls -A allure-results 2>/dev/null)" ]; then
+          # Генерируем отчет с историей
           allure generate allure-results -o allure-report --clean
           
           # Восстанавливаем историю для накопительного отчета
           if [ -d "allure-history" ] && [ "$(ls -A allure-history 2>/dev/null)" ]; then
+            mkdir -p allure-report/history
             cp -r allure-history/* allure-report/history/ || true
           fi
         else
           echo "No test results found"
+        fi
+        
+    - name: Save Allure history for next run
+      if: always()
+      run: |
+        if [ -d "allure-report/history" ] && [ "$(ls -A allure-report/history 2>/dev/null)" ]; then
+          mkdir -p allure-history
+          cp -r allure-report/history/* allure-history/ || true
         fi
         
     - name: Upload Allure Report
@@ -99,10 +120,18 @@ jobs:
         path: allure-report
         retention-days: 30
         
+    - name: Upload Allure history
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: allure-history
+        path: allure-history
+        retention-days: 90
+        if-no-files-found: ignore
+        
     - name: Deploy Allure Report to GitHub Pages
       if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
       uses: peaceiris/actions-gh-pages@v3
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         publish_dir: ./allure-report
-        destination_dir: ./allure-report
