@@ -1,4 +1,4 @@
-using Allure.XUnit;
+using Allure.Xunit;
 using Xunit;
 
 [assembly: AllureXunit]

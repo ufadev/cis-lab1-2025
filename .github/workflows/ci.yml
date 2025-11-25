@@ -49,10 +49,15 @@ jobs:
       working-directory: ./backend
       run: dotnet restore
       
+    - name: Create allure-results directory
+      working-directory: ./backend
+      run: mkdir -p allure-results
+      
     - name: Run backend tests with Allure
       working-directory: ./backend
       run: |
         export ALLURE_RESULTS_DIR=allure-results
+        dotnet build Tests/Tests.csproj
         dotnet test Tests/Tests.csproj --logger "trx;LogFileName=../allure-results/results.trx"
       continue-on-error: true
       
@@ -72,7 +77,7 @@ jobs:
       with:
         name: allure-history
         path: allure-history
-        continue-on-error: true
+        if-no-files-found: ignore
         
     - name: Prepare Allure history
       run: |
