@@ -57,7 +57,6 @@ jobs:
       working-directory: ./backend
       run: |
         export ALLURE_RESULTS_DIR=allure-results
-        dotnet build Tests/Tests.csproj
         dotnet test Tests/Tests.csproj --logger "trx;LogFileName=../allure-results/results.trx"
       continue-on-error: true
       
