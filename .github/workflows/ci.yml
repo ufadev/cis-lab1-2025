@@ -58,7 +58,7 @@ jobs:
       working-directory: ./backend
       run: |
         export ALLURE_RESULTS_DIR=${{ github.workspace }}/backend/allure-results
-        dotnet test Tests/Tests.csproj -- RunConfiguration.ReporterSwitch=allure
+        dotnet test Tests/Tests.csproj
       continue-on-error: true
       
     - name: Download Allure CLI

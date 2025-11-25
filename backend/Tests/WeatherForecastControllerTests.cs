@@ -1,15 +1,17 @@
-using Xunit;
-using Allure.Xunit.Attributes;
+using NUnit.Framework;
+using Allure.NUnit;
+using Allure.NUnit.Attributes;
 using Backend.Controllers;
 
 namespace Backend.Tests;
 
+[AllureNUnit]
+[AllureParentSuite("Backend")]
+[AllureSuite("WeatherForecast")]
+[AllureSubSuite("Controller")]
 public class WeatherForecastControllerTests
 {
-    [Fact]
-    [AllureParentSuite("Backend")]
-    [AllureSuite("WeatherForecast")]
-    [AllureSubSuite("Controller")]
+    [Test]
     public void Get_ReturnsWeatherForecasts()
     {
         // Arrange
@@ -19,14 +21,11 @@ public class WeatherForecastControllerTests
         var result = controller.Get();
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Equal(5, result.Count());
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.Count(), Is.EqualTo(5));
     }
 
-    [Fact]
-    [AllureParentSuite("Backend")]
-    [AllureSuite("WeatherForecast")]
-    [AllureSubSuite("Controller")]
+    [Test]
     public void GetById_ReturnsWeatherForecast()
     {
         // Arrange
@@ -37,9 +36,9 @@ public class WeatherForecastControllerTests
         var result = controller.GetById(id);
 
         // Assert
-        Assert.NotNull(result);
+        Assert.That(result, Is.Not.Null);
         // СЛОМАННЫЙ ТЕСТ: проверяется что id равен 0, но передается 1
-        Assert.Equal(0, id);
+        Assert.That(id, Is.EqualTo(0));
     }
 }
 
