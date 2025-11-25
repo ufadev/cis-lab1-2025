@@ -10,7 +10,7 @@
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest --coverage",
-    "test:allure": "vitest --run"
+    "test:allure": "vitest"
   },
   "dependencies": {
     "react": "^18.2.0",
