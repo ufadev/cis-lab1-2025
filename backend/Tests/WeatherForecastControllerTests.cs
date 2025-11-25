@@ -7,7 +7,6 @@ namespace Backend.Tests;
 public class WeatherForecastControllerTests
 {
     [Fact]
-    [AllureXunit]
     [AllureParentSuite("Backend")]
     [AllureSuite("WeatherForecast")]
     [AllureSubSuite("Controller")]
@@ -25,7 +24,6 @@ public class WeatherForecastControllerTests
     }
 
     [Fact]
-    [AllureXunit]
     [AllureParentSuite("Backend")]
     [AllureSuite("WeatherForecast")]
     [AllureSubSuite("Controller")]
