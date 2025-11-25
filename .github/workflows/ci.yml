@@ -49,16 +49,9 @@ jobs:
       working-directory: ./backend
       run: dotnet restore
       
-    - name: Create allure-results directories
-      run: |
-        mkdir -p allure-results
-        mkdir -p backend/allure-results
-      
     - name: Run backend tests with Allure
       working-directory: ./backend
-      run: |
-        export ALLURE_RESULTS_DIR=${{ github.workspace }}/backend/allure-results
-        dotnet test Tests/Tests.csproj
+      run: dotnet test Tests/Tests.csproj
       continue-on-error: true
       
     - name: Download Allure CLI
@@ -71,26 +64,19 @@ jobs:
     - name: Collect all Allure results
       run: |
         mkdir -p allure-results
-        echo "Collecting Allure results..."
         # Копируем результаты из frontend
         if [ -d "frontend/allure-results" ]; then
-          echo "Copying frontend results..."
           cp -r frontend/allure-results/* allure-results/ || true
         fi
-        # Копируем результаты из backend (проверяем несколько возможных мест)
+        # Копируем результаты из backend (allureConfig.json настроен на backend/allure-results)
         if [ -d "backend/allure-results" ]; then
-          echo "Copying backend results from backend/allure-results..."
           cp -r backend/allure-results/* allure-results/ || true
         fi
-        # Проверяем также стандартное место для Allure.Xunit результатов в bin директории
-        BACKEND_RESULTS=$(find backend -type d -name "allure-results" 2>/dev/null | grep -v "node_modules" | head -1)
+        # Проверяем также bin директорию на случай если конфиг не сработал
+        BACKEND_RESULTS=$(find backend/Tests/bin -type d -name "allure-results" 2>/dev/null | head -1)
         if [ -n "$BACKEND_RESULTS" ] && [ -d "$BACKEND_RESULTS" ]; then
-          echo "Found backend results in: $BACKEND_RESULTS"
           cp -r "$BACKEND_RESULTS"/* allure-results/ || true
         fi
-        echo "Final allure-results contents:"
-        ls -la allure-results/ || true
-        echo "Total files: $(find allure-results -type f | wc -l)"
         
     - name: Get Allure history from gh-pages
       if: always()
