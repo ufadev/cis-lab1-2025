@@ -1,0 +1,43 @@
+name: CI Test
+
+on:
+  push:
+    branches: [ main, master, develop ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+        
+    - name: Check Node version
+      run: node --version
+      
+    - name: Check .NET version
+      run: dotnet --version
+      
+    - name: List files
+      run: ls -la
+      
+    - name: Check frontend structure
+      run: |
+        echo "Frontend structure:"
+        ls -la frontend/
+        
+    - name: Check backend structure
+      run: |
+        echo "Backend structure:"
+        ls -la backend/
+
