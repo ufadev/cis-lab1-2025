@@ -1,0 +1,147 @@
+# Пошаговая инструкция: Создание CI/CD пайплайна с GitHub Actions и Allure
+
+## Шаг 1: Создание структуры
+
+```bash
+mkdir -p .github/workflows
+touch .github/workflows/ci.yml
+```
+
+## Шаг 2: Базовый workflow
+
+Создайте файл `.github/workflows/ci.yml` со следующим содержимым:
+
+```yaml
+name: CI Pipeline
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master, develop ]
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+        
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        cache-dependency-path: frontend/package-lock.json
+        
+    - name: Restore frontend dependencies
+      working-directory: ./frontend
+      run: npm ci
+      continue-on-error: true
+      
+    - name: Run frontend tests
+      working-directory: ./frontend
+      run: npm run test:allure -- --run
+      continue-on-error: true
+      env:
+        ALLURE_RESULTS_DIR: allure-results
+      
+    - name: Restore .NET dependencies
+      working-directory: ./backend
+      run: dotnet restore
+      
+    - name: Run backend tests with Allure
+      working-directory: ./backend
+      run: |
+        mkdir -p allure-results
+        export ALLURE_RESULTS_DIR=${{ github.workspace }}/backend/allure-results
+        dotnet test Tests/Tests.csproj
+      continue-on-error: true
+      
+    - name: Download Allure CLI
+      run: |
+        wget -q https://github.com/allure-framework/allure2/releases/download/2.24.1/allure-2.24.1.tgz
+        tar -zxvf allure-2.24.1.tgz
+        sudo mv allure-2.24.1 /opt/allure
+        sudo ln -sf /opt/allure/bin/allure /usr/local/bin/allure
+        
+    - name: Collect all Allure results
+      run: |
+        mkdir -p allure-results
+        if [ -d "frontend/allure-results" ]; then
+          cp -r frontend/allure-results/* allure-results/ || true
+        fi
+        find backend -type d -name "allure-results" -not -path "*/node_modules/*" | while read dir; do
+          if [ -d "$dir" ] && [ "$(ls -A $dir 2>/dev/null)" ]; then
+            cp -r "$dir"/* allure-results/ || true
+          fi
+        done
+        
+    - name: Get Allure history from gh-pages
+      if: always()
+      continue-on-error: true
+      uses: actions/checkout@v4
+      with:
+        ref: gh-pages
+        path: gh-pages
+        
+    - name: Generate Allure Report with history
+      if: always()
+      uses: simple-elf/allure-report-action@master
+      with:
+        allure_results: allure-results
+        allure_report: allure-report
+        gh_pages: gh-pages
+        allure_history: allure-history
+        
+    - name: Upload Allure Report
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: allure-report
+        path: allure-report
+        retention-days: 30
+        
+    - name: Deploy Allure Report to GitHub Pages
+      if: always() && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./allure-history
+```
+
+## Шаг 3: Настройка GitHub Pages
+
+1. Перейдите в **Settings** → **Pages** вашего репозитория
+2. В разделе **Source** выберите **GitHub Actions**
+3. Сохраните изменения
+
+## Основные компоненты workflow
+
+- **Триггеры**: `push` и `pull_request` на ветки main/master/develop
+- **Окружение**: Ubuntu с .NET 8.0 и Node.js 20
+- **Тесты**: Frontend (Vitest) и Backend (NUnit) с генерацией Allure результатов
+- **Отчет**: Сборка Allure отчета с историей и публикация в GitHub Pages
+
+## Частые проблемы
+
+**Тесты не генерируют Allure результаты:**
+- Проверьте установку пакетов: `allure-vitest` (frontend), `Allure.NUnit` (backend)
+- Проверьте переменные окружения и конфигурационные файлы
+
+**GitHub Pages не публикует отчет:**
+- Убедитесь, что включен GitHub Pages в настройках репозитория
+- Проверьте, что workflow выполняется на ветке main/master
