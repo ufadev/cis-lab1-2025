@@ -73,11 +73,16 @@ jobs:
         python3 scripts/convert_trx_to_allure.py backend/allure-results/results.trx allure-results/ || true
         
     - name: Download Allure history from previous run
-      uses: actions/download-artifact@v4
+      id: download-history
       continue-on-error: true
+      uses: actions/download-artifact@v4
       with:
         name: allure-history
         path: allure-history
+        
+    - name: Create allure-history directory if not exists
+      if: steps.download-history.outcome == 'failure'
+      run: mkdir -p allure-history
         
     - name: Prepare Allure history
       run: |
