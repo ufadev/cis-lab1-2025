@@ -7,7 +7,15 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts', 'allure-vitest/setup'],
-    reporters: ['default', 'allure-vitest']
+    reporters: [
+      'default',
+      [
+        'allure-vitest/reporter',
+        {
+          resultsDir: './allure-results'
+        }
+      ]
+    ]
   }
 })
 
