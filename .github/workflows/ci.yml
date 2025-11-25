@@ -67,43 +67,15 @@ jobs:
     - name: Collect all Allure results
       run: |
         mkdir -p allure-results
-        echo "=== Searching for Allure results ==="
-        # Ищем все директории allure-results
-        find . -type d -name "allure-results" -not -path "*/node_modules/*" | while read dir; do
-          echo "Found: $dir"
-          ls -la "$dir" || true
-        done
-        echo ""
         # Копируем результаты из frontend
         if [ -d "frontend/allure-results" ]; then
-          echo "Copying frontend results from frontend/allure-results..."
           cp -r frontend/allure-results/* allure-results/ || true
         fi
-        # Копируем результаты из backend (allureConfig.json настроен на backend/allure-results)
-        if [ -d "backend/allure-results" ]; then
-          echo "Copying backend results from backend/allure-results..."
-          cp -r backend/allure-results/* allure-results/ || true
-        fi
-        # Проверяем также bin директорию (стандартное место для Allure.NUnit)
-        BACKEND_RESULTS=$(find backend/Tests/bin -type d -name "allure-results" 2>/dev/null | head -1)
-        if [ -n "$BACKEND_RESULTS" ] && [ -d "$BACKEND_RESULTS" ]; then
-          echo "Copying backend results from $BACKEND_RESULTS..."
-          cp -r "$BACKEND_RESULTS"/* allure-results/ || true
-        fi
-        # Проверяем все возможные места в backend
+        # Копируем результаты из backend (проверяем все возможные места)
         find backend -type d -name "allure-results" -not -path "*/node_modules/*" | while read dir; do
           if [ -d "$dir" ] && [ "$(ls -A $dir 2>/dev/null)" ]; then
-            echo "Copying from $dir..."
             cp -r "$dir"/* allure-results/ || true
           fi
-        done
-        echo ""
-        echo "=== Final allure-results contents ==="
-        ls -la allure-results/ || true
-        echo "Total files: $(find allure-results -type f 2>/dev/null | wc -l)"
-        find allure-results -type f -name "*-result.json" | head -5 | while read file; do
-          echo "Sample file: $file"
-          jq -r '.labels[] | select(.name == "parentSuite" or .name == "suite") | "\(.name): \(.value)"' "$file" 2>/dev/null || true
         done
         
     - name: Get Allure history from gh-pages
