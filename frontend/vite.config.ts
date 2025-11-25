@@ -6,11 +6,8 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'jsdom',
-    setupFiles: './src/test/setup.ts',
-    reporters: ['default', ['allure-vitest', { outputFile: './allure-results/allure-results.xml' }]],
-    outputFile: {
-      allure: './allure-results/allure-results.xml'
-    }
+    setupFiles: ['./src/test/setup.ts', 'allure-vitest/setup'],
+    reporters: ['default', 'allure-vitest']
   }
 })
 
