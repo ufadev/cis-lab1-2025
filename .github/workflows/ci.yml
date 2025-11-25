@@ -71,76 +71,43 @@ jobs:
       run: |
         python3 scripts/convert_trx_to_allure.py backend/allure-results/results.trx allure-results/ || true
         
-    - name: Download Allure history from previous run
-      id: download-history
-      continue-on-error: true
-      uses: actions/download-artifact@v4
-      with:
-        name: allure-history
-        path: allure-history
-        
-    - name: Create allure-history directory if not exists
-      if: steps.download-history.outcome == 'failure'
-      run: mkdir -p allure-history
-        
-    - name: Prepare Allure history
-      run: |
-        mkdir -p allure-history
-        # Если история загружена из артефакта, она уже в allure-history
-        echo "History prepared"
-        
-    - name: Generate Allure Report
+    - name: Collect all Allure results
       run: |
         mkdir -p allure-results
-        mkdir -p allure-history
-        mkdir -p allure-report
-        
         # Копируем результаты из frontend
         if [ -d "frontend/allure-results" ]; then
           cp -r frontend/allure-results/* allure-results/ || true
         fi
+        # Результаты из backend уже в allure-results
         
-        # Генерируем отчет
-        if [ "$(ls -A allure-results 2>/dev/null)" ]; then
-          # Генерируем отчет с историей
-          allure generate allure-results -o allure-report --clean
-          
-          # Восстанавливаем историю для накопительного отчета
-          if [ -d "allure-history" ] && [ "$(ls -A allure-history 2>/dev/null)" ]; then
-            mkdir -p allure-report/history
-            cp -r allure-history/* allure-report/history/ || true
-          fi
-        else
-          echo "No test results found"
-        fi
-        
-    - name: Save Allure history for next run
+    - name: Get Allure history from gh-pages
       if: always()
-      run: |
-        if [ -d "allure-report/history" ] && [ "$(ls -A allure-report/history 2>/dev/null)" ]; then
-          mkdir -p allure-history
-          cp -r allure-report/history/* allure-history/ || true
-        fi
+      continue-on-error: true
+      uses: actions/checkout@v4
+      with:
+        ref: gh-pages
+        path: gh-pages
+        
+    - name: Generate Allure Report with history
+      if: always()
+      uses: simple-elf/allure-report-action@master
+      with:
+        allure_results: allure-results
+        allure_report: allure-report
+        gh_pages: gh-pages
+        allure_history: allure-history
         
     - name: Upload Allure Report
+      if: always()
       uses: actions/upload-artifact@v4
       with:
         name: allure-report
         path: allure-report
         retention-days: 30
         
-    - name: Upload Allure history
-      if: always()
-      uses: actions/upload-artifact@v4
-      with:
-        name: allure-history
-        path: allure-history
-        retention-days: 90
-        if-no-files-found: ignore
-        
     - name: Deploy Allure Report to GitHub Pages
-      if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+      if: always() && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
       uses: peaceiris/actions-gh-pages@v3
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: ./allure-report
+        publish_dir: ./allure-history
